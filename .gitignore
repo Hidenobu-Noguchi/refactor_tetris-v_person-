@@ -1,3 +1,6 @@
+tetris_base
+tetris.c
+
 # Prerequisites
 *.d
 
