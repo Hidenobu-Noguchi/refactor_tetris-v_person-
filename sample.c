@@ -1,15 +1,4 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <time.h>
-#include <sys/time.h>
-#include <ncurses.h>
-
-#define ROW 20
-#define COLUMN 15
-#define	MINO_TYPES 7
-#define	SQUARE_SIZE 4
-#define TRUE 1
-#define FALSE 0
+#include "tetris.h"
 
 char			game_field[ROW][COLUMN] = {0};
 int				get_score = 0;
@@ -18,29 +7,7 @@ suseconds_t		interval = 400000;
 int				up_speed = 1000;
 struct timeval	starting_time;
 struct timeval 	present_time;
-
-typedef unsigned char	t_mino_array[SQUARE_SIZE][SQUARE_SIZE];
-
-typedef struct s_mino_shape	t_mino_shape;
-typedef struct s_position	t_position;
-typedef struct s_mino		t_mino;
-
-struct s_mino_shape {
-	t_mino_array	array;
-	int				size;
-};
-
-struct s_position {
-	int	x;
-	int	y;
-};
-
-struct s_mino {
-	t_mino_shape	shape;
-	t_position		pos;
-};
-
-t_mino	current_mino;
+t_mino			current_mino;
 
 const t_mino_shape	mino_set[MINO_TYPES] = {
 	{
@@ -107,80 +74,6 @@ const t_mino_shape	mino_set[MINO_TYPES] = {
 		.size = 4,
 	},
 };
-
-t_mino	create_mino(void) {
-	t_mino			new_mino;
-	t_mino_shape	new_shape = mino_set[rand() % 7];
-	new_mino.shape = new_shape;
-	new_mino.pos.x = rand() % (COLUMN - (new_mino.shape.size + 1));
-	new_mino.pos.y = 0;
-	return (new_mino);
-}
-
-static void	add_if_exist_mino(char (*mino_pos)[15], int row, int col)
-{
-	if(current_mino.shape.array[row][col])
-		mino_pos[current_mino.pos.y + row][current_mino.pos.x + col] = current_mino.shape.array[row][col];
-}
-
-static void	add_current_mino_pos(char (*mino_pos)[15])
-{
-	for(int row = 0; row < current_mino.shape.size ;row++) {
-		for(int col = 0; col < current_mino.shape.size ; col++) {
-			add_if_exist_mino(mino_pos, row, col);
-		}
-	}
-}
-
-static void	print_title()
-{
-	for(int i = 0; i < COLUMN - 9; i++)
-		printw(" ");
-	printw("42 Tetris\n");
-}
-
-static void	print_game_table(char (*mino_pos)[15])
-{
-	for(int i = 0; i < ROW ; i++){
-		for(int j = 0; j < COLUMN ; j++){
-			printw("%c ", (game_field[i][j] + mino_pos[i][j]) ? '#' : '.');
-		}
-		printw("\n");
-	}
-}
-
-static void	print_score()
-{
-	printw("\nScore: %d\n", get_score);
-}
-
-void	print_table() {
-
-	char current_mino_pos[ROW][COLUMN] = {0};
-	add_current_mino_pos(current_mino_pos);
-	clear();
-	print_title();
-	print_game_table(current_mino_pos);
-	print_score();
-}
-
-int check_mino_position(t_mino mino) {
-	for(int i = 0; i < mino.shape.size; i++) {
-		for(int j = 0; j < mino.shape.size; j++) {
-			int	x = mino.pos.x + j;
-			int	y = mino.pos.y + i;
-
-			if (y < 0 || ROW <= y || x < 0 || COLUMN <= x)
-			{
-				if (mino.shape.array[i][j])
-					return FALSE;
-			}
-			else if (game_field[y][x] && mino.shape.array[i][j])
-				return FALSE;
-		}
-	}
-	return TRUE;
-}
 
 void	rotate_mino(t_mino *mino) {
 	t_mino_shape	before_shape = mino->shape;
@@ -261,8 +154,12 @@ void	execute_command(int c)
 	print_table();
 }
 
-int is_time_to_update(){
-	return ((suseconds_t)((present_time.tv_sec * 1000000) + present_time.tv_usec) - (suseconds_t)((starting_time.tv_sec * 1000000) + starting_time.tv_usec)) > interval;
+int is_time_to_update() {
+	suseconds_t	present_tm = (present_time.tv_sec * 1000000) + present_time.tv_usec;
+	suseconds_t	start_tm = (starting_time.tv_sec * 1000000) + starting_time.tv_usec;
+
+	return (present_tm - start_tm) > interval;
+	// return ((suseconds_t)((present_time.tv_sec * 1000000) + present_time.tv_usec) - (suseconds_t)((starting_time.tv_sec * 1000000) + starting_time.tv_usec)) > interval;
 }
 
 void	running_game()
@@ -281,40 +178,7 @@ void	running_game()
 	}
 }
 
-void	initialize_game() {
-	t_mino	new_mino = create_mino();
-   
-    initscr();
-	gettimeofday(&starting_time, NULL);
-	timeout(1);
-	srand((unsigned int)starting_time.tv_usec);
-
-	get_score = 0;
-	current_mino = new_mino;
-
-	if(!check_mino_position(current_mino))
-		is_running = FALSE;
-	print_table();
-}
-
-void	print_game_over() {
-	printf("\nGame over!\n");
-}
-void	finish_game() {
-	endwin();
-	for(int i = 0; i < ROW ;i++) {
-		for(int j = 0; j < COLUMN ; j++) {
-			printf("%c ", game_field[i][j] ? '#': '.');
-		}
-		printf("\n");
-	}
-	print_game_over();
-	print_last_score();
-	// printf("\nScore: %d\n", get_score);
-}
-
 int main() {
-
 	initialize_game();
 	running_game();
 	finish_game();
